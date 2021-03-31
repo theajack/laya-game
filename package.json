@@ -1,0 +1,36 @@
+{
+    "name": "laya-game",
+    "version": "0.0.5",
+    "description": "laya-game",
+    "scripts": {
+    },
+    "author": "tackchen",
+    "repository": {
+        "type": "git",
+        "url": "https://www.github.com/theajack/laya-game"
+    },
+    "keywords": [
+        ""
+    ],
+    "license": "MIT",
+    "devDependencies": {
+        "@commitlint/cli": "^8.2.0",
+        "@commitlint/config-conventional": "^8.2.0",
+        "@typescript-eslint/eslint-plugin": "^2.14.0",
+        "@typescript-eslint/parser": "^2.14.0",
+        "eslint": "^6.8.0",
+        "eslint-config-standard": "^14.1.0",
+        "eslint-loader": "^3.0.2",
+        "eslint-plugin-import": "^2.18.2",
+        "eslint-plugin-node": "^10.0.0",
+        "eslint-plugin-promise": "^4.2.1",
+        "husky": "^3.0.9",
+        "lint-staged": "^9.4.2",
+        "typescript": "^3.7.4"
+    },
+    "husky": {
+        "hooks": {
+            "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+        }
+    }
+}

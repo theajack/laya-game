@@ -1,0 +1,4 @@
+<res>
+   <item name="test/wall.jpg" type="Sprite" compress="0" pack="1" quality="80" props="" picType="0" scale="0"/>
+   <item name="test/ground.jpg" type="Sprite" compress="0" pack="1" quality="80" props="" picType="0" scale="0"/>
+</res>

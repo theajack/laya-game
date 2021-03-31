@@ -1,0 +1,14 @@
+.laya
+.rpt2_cache
+.vscode
+assets
+bin
+laya
+laya-game
+libs
+node_modules
+release
+*.html
+
+src/ui/layaMaxUI.ts
+src/GameConfig.ts
