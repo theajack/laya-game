@@ -2,8 +2,8 @@
  * @Author: tackchen
  * @Date: 2021-03-09 15:49:30
  * @LastEditors: tackchen
- * @LastEditTime: 2021-03-31 11:28:08
- * @FilePath: \laya-demo-empty\hack-laya.js
+ * @LastEditTime: 2022-04-04 17:29:52
+ * @FilePath: /laya-game/hack-laya.js
  * @Description: Coding something
  */
 
@@ -36,7 +36,14 @@ function loadLib (url) {
 }
 
 function concatUrl (url) {
+    if (isLayaBaseAHttpLink()) {
+        return window.LAYA_BASE + url;
+    }
     return (window.LAYA_BASE_DIR ? '/' : '') + window.LAYA_BASE + url;
+}
+
+function isLayaBaseAHttpLink () {
+    return /^https?:\/\//.test(window.LAYA_BASE);
 }
 
 
@@ -54,12 +61,15 @@ function hackLaya () {
     Laya.SoundManager.playSound = _buildLayaHacker(Laya.SoundManager.playSound);
 
     const replaceHttpUrlHandle = function (url) {
+        // console.log('replaceHttpUrlHandle', url);
         const head = location.protocol + '//' + location.host + '/';
+
         let replacement = head;
-        if (window.LAYA_BASE_DIR) {
+        if (window.LAYA_BASE_DIR && location.pathname.indexOf(window.LAYA_BASE_DIR) !== -1) {
             replacement += window.LAYA_BASE_DIR;
         }
-        url = url.replace(replacement, head + window.LAYA_BASE);
+        const value = (isLayaBaseAHttpLink() ? '' : head) + window.LAYA_BASE;
+        url = url.replace(replacement, value);
         return url;
     };
     Laya.HttpRequest.prototype.send = _buildLayaHacker(Laya.HttpRequest.prototype.send, replaceHttpUrlHandle);
