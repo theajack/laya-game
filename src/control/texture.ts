@@ -2,7 +2,7 @@
  * @Autor: theajack
  * @Date: 2021-03-25 21:59:44
  * @LastEditors: tackchen
- * @LastEditTime: 2021-03-31 11:26:46
+ * @LastEditTime: 2022-02-10 08:46:25
  * @Description: Coding something
  */
 
@@ -38,19 +38,19 @@ function textureReady () {
 export function initTexture () {
     for (let i = 0; i < 10; i++) {
         ((index: number) => {
-            Laya.Texture2D.load(`test/ball/b${index - 1}.png`, Laya.Handler.create(this, (texture: Laya.Texture) => {
-                ballTextures[Math.pow(2, index)] = texture;
-            }));
+            ballTextures[Math.pow(2, index)] = loadTexture(`test/ball/b${index - 1}.png`);
         })(i + 1);
     }
-    Laya.Texture2D.load(`test/wall.jpg`, Laya.Handler.create(this, (texture: Laya.Texture) => {
-        bgTexture = texture;
-        textureReady();
+    bgTexture = loadTexture('test/wall.jpg', textureReady);
+    groundTexture = loadTexture('test/ground.jpg', textureReady);
+}
+
+function loadTexture (url: string, onReady?: Function) {
+    const texture = new Laya.Texture();
+    texture.load(url, Laya.Handler.create(this, () => {
+        if (onReady) onReady();
     }));
-    Laya.Texture2D.load(`test/ground.jpg`, Laya.Handler.create(this, (texture: Laya.Texture) => {
-        groundTexture = texture;
-        textureReady();
-    }));
+    return texture;
 }
 
 export function getTextureByValue (value: number) {
@@ -71,61 +71,61 @@ export function getOrderByValue (value: number) {
 
 
 const rigidAttrs = [
-    {
-        f: 0.1,
-        r: 0.3,
-        g: 1,
-        d: 15,
+    { // 弹珠
+        f: 0.1, // 摩擦
+        r: 0.3, // 恢复
+        g: 1, // 重力
+        d: 15, // 密度
     },
-    {
+    { // 乒乓球
         f: 0.2,
         r: 0.5,
         g: 0.7,
         d: 5,
     },
-    {
+    { // 网球
         f: 0.4,
         r: 0.6,
         g: 0.8,
         d: 7,
     },
-    {
+    { // 高尔夫
         f: 0.4,
         r: 0.35,
         g: 0.9,
         d: 12,
     },
-    {
+    { // 台球
         f: 0.1,
         r: 0.3,
         g: 1,
         d: 15,
     },
-    {
+    { // 棒球
         f: 0.3,
         r: 0.5,
         g: 0.8,
         d: 9,
     },
-    {
+    { // 保龄球
         f: 0.1,
         r: 0.3,
         g: 1,
         d: 14,
     },
-    {
+    { // 排球
         f: 0.2,
         r: 0.4,
         g: 0.8,
         d: 10,
     },
-    {
+    { // 足球
         f: 0.2,
         r: 0.4,
         g: 0.8,
         d: 10,
     },
-    {
+    { // 篮球
         f: 0.2,
         r: 0.5,
         g: 0.8,

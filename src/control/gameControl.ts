@@ -8,7 +8,11 @@ import {countSizeByValue, getBgTexture, getGroundTexture, getRigidAttrByValue, g
 
 function setDocumentTitle (text: string) {
     if (window.document) {
-        window.document.title = text;
+        try {
+            window.document.title = text;
+        } catch (e) {
+            
+        }
     }
 }
 
@@ -58,7 +62,9 @@ export default class GameControl extends Laya.Script {
         const start = starPos - (size - starPos) / 2;
         const graphics = (this.owner as Laya.Scene).graphics;
         graphics.clear();
-        graphics.drawTexture(getBgTexture(), 0, 0, this.width, this.height);
+        const bt = getBgTexture();
+        // debugger
+        graphics.drawTexture(bt, 0, 0, this.width, this.height);
         graphics.drawTexture(getGroundTexture(), 0, this.height - this._groundHeight, this.width, this._groundHeight);
 
         graphics.drawTexture(getTextureByValue(this.nextValue), start, start, size, size);

@@ -2,8 +2,7 @@
     "name": "laya-game",
     "version": "0.0.5",
     "description": "laya-game",
-    "scripts": {
-    },
+    "scripts": {},
     "author": "tackchen",
     "repository": {
         "type": "git",
