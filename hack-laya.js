@@ -2,7 +2,7 @@
  * @Author: tackchen
  * @Date: 2021-03-09 15:49:30
  * @LastEditors: tackchen
- * @LastEditTime: 2022-04-04 17:29:52
+ * @LastEditTime: 2022-04-05 10:33:03
  * @FilePath: /laya-game/hack-laya.js
  * @Description: Coding something
  */
@@ -14,7 +14,7 @@ function main () {
     const script = document.querySelector('[laya-base]');
     if (script) {
         window.LAYA_BASE = script.getAttribute('laya-base');
-        window.LAYA_BASE_DIR = script.getAttribute('laya-base-dir');
+        window.LAYA_BASE_DIR = script.getAttribute('laya-base-dir') || location.pathname.substring(1);
     }
     loadLib('index.js');
 }
