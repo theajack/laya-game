@@ -153,28 +153,6 @@
         }
     }
     setDocumentTitle('游戏资源加载中...');
-    const HighScoreManager = (() => {
-        const KEY = 'BALL_HIGH_SCORE';
-        let high = 0;
-        let text;
-        return {
-            initText(control) {
-                const value = Laya.LocalStorage.getItem(KEY);
-                if (value) {
-                    high = parseInt(value);
-                }
-                text = control.owner.getChildByName('highText');
-                text.changeText(high + '');
-            },
-            record(score) {
-                if (score > high) {
-                    high = score;
-                    Laya.LocalStorage.setItem(KEY, high + '');
-                    text.changeText(high + '');
-                }
-            }
-        };
-    })();
     const TextManager = (() => {
         let titleText;
         let descText;
@@ -197,6 +175,28 @@
             }
         };
     })();
+    const HighScoreManager = (() => {
+        const KEY = 'BALL_HIGH_SCORE';
+        let high = 0;
+        let text;
+        return {
+            initText(control) {
+                const value = Laya.LocalStorage.getItem(KEY);
+                if (value) {
+                    high = parseInt(value);
+                }
+                text = control.owner.getChildByName('highText');
+                text.changeText(high + '');
+            },
+            record(score) {
+                if (score > high) {
+                    high = score;
+                    Laya.LocalStorage.setItem(KEY, high + '');
+                    text.changeText(high + '');
+                }
+            }
+        };
+    })();
     class GameControl extends Laya.Script {
         constructor() {
             super();
@@ -211,11 +211,11 @@
             this.ballDrop = new BallDrop();
             GameControl.instance = this;
             window.game = this;
-            initTexture();
         }
         onEnable() {
             this._gameBox = this.owner.getChildByName('gameBox');
             this._initSize();
+            initTexture();
             onTextureReady(() => {
                 setDocumentTitle('合成一个大篮球~');
                 this.owner.getChildByName('tip').changeText('合成一个大篮球');
@@ -284,9 +284,12 @@
                 TextManager.clearText();
             }
         }
+        setScore(value) {
+            this.score = value;
+            this.owner.getChildByName('scoreText').changeText(value + '');
+        }
         geneNewBall(value, x, y, velocity) {
-            this.score += value;
-            this.owner.getChildByName('scoreText').changeText(this.score + '');
+            this.setScore(this.score + value);
             this._creatNewBall(value, x, y, velocity);
             this._checkWin(value);
         }
@@ -344,7 +347,7 @@
         }
         resetGame() {
             this._gameBox.removeChildren();
-            this.score = 0;
+            this.setScore(0);
             this.losed = false;
             TextManager.clearText();
         }
@@ -443,7 +446,7 @@
     }
     GameConfig.width = 375;
     GameConfig.height = 667;
-    GameConfig.scaleMode = "";
+    GameConfig.scaleMode = "fixedwidth";
     GameConfig.screenMode = "none";
     GameConfig.alignV = "top";
     GameConfig.alignH = "left";

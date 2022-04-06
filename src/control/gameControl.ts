@@ -19,6 +19,32 @@ function setDocumentTitle (text: string) {
 
 setDocumentTitle('游戏资源加载中...');
 
+
+export const TextManager = (() => {
+    let titleText: Laya.Text;
+    let descText: Laya.Text;
+    return {
+        init (control: GameControl) {
+            titleText = control.owner.getChildByName('tip') as Laya.Text;
+            descText = control.owner.getChildByName('tip2') as Laya.Text;
+        },
+        setText (title: string, desc?:string) {
+            titleText.changeText(title);
+            titleText.visible = true;
+
+            if (desc) {
+                descText.changeText(desc);
+                descText.visible = true;
+            }
+        },
+
+        clearText () {
+            titleText.visible = false;
+            descText.visible = false;
+        }
+    };
+})();
+
 const HighScoreManager = (() => {
 
     const KEY = 'BALL_HIGH_SCORE';
@@ -46,31 +72,6 @@ const HighScoreManager = (() => {
     };
 })();
 
-export const TextManager = (() => {
-    let titleText: Laya.Text;
-    let descText: Laya.Text;
-    return {
-        init (control: GameControl) {
-            titleText = control.owner.getChildByName('tip') as Laya.Text;
-            descText = control.owner.getChildByName('tip2') as Laya.Text;
-        },
-        setText (title: string, desc?:string) {
-            titleText.changeText(title);
-            titleText.visible = true;
-
-            if (desc) {
-                descText.changeText(desc);
-                descText.visible = true;
-            }
-        },
-
-        clearText () {
-            titleText.visible = false;
-            descText.visible = false;
-        }
-    };
-})();
-
 export default class GameControl extends Laya.Script {
     /** @prop {name:ball,tips:"球",type:Prefab}*/
     ball: Laya.Prefab;
@@ -92,12 +93,12 @@ export default class GameControl extends Laya.Script {
         super();
         GameControl.instance = this;
         (window as any).game = this;
-        initTexture();
     }
 
     onEnable (): void {
         this._gameBox = this.owner.getChildByName('gameBox') as Laya.Sprite;
         this._initSize();
+        initTexture();
         onTextureReady(() => {
             setDocumentTitle('合成一个大篮球~');
             (this.owner.getChildByName('tip') as Laya.Text).changeText('合成一个大篮球');
@@ -182,9 +183,13 @@ export default class GameControl extends Laya.Script {
         }
     }
 
+    setScore (value: number) {
+        this.score = value;
+        (this.owner.getChildByName('scoreText') as Laya.Text).changeText(value + '');
+    }
+
     geneNewBall (value: number, x: number, y: number, velocity: {x: number; y: number}): void {
-        this.score += value;
-        (this.owner.getChildByName('scoreText') as Laya.Text).changeText(this.score + '');
+        this.setScore(this.score + value);
         this._creatNewBall(value, x, y, velocity);
         this._checkWin(value);
     }
@@ -261,7 +266,7 @@ export default class GameControl extends Laya.Script {
 
     resetGame () {
         this._gameBox.removeChildren();
-        this.score = 0;
+        this.setScore(0);
         this.losed = false;
         TextManager.clearText();
     }
