@@ -9,7 +9,6 @@
             this.timeGap = 300;
         }
         onGeneBall() {
-            console.log(this.dropNumber, this.maxDropNumber);
             if (!this.canDropBall()) {
                 return false;
             }
@@ -259,7 +258,6 @@
             }
         }
         onStageMouseUp(e) {
-            console.log('onStageMouseUp');
             e.stopPropagation();
             if (this.losed) {
                 this.resetGame();
@@ -276,7 +274,6 @@
                 this._drawNextBall(Laya.stage.mouseX);
         }
         onDropNewBall() {
-            console.log('onDropNewBall');
             if (this.height !== Laya.stage.height) {
                 this._initSize();
             }
@@ -285,7 +282,7 @@
             }
             const x = Laya.stage.mouseX;
             const y = 50;
-            this._creatNewBall(this.nextValue, x, y, { x: 0, y: window.vy || 4 });
+            this._creatNewBall(this.nextValue, x, y, { x: 0, y: 4 });
             this.nextValue = this._randomValue();
             this._drawNextBall();
             if (this.didTipShow) {

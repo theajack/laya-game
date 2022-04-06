@@ -2,7 +2,7 @@
  * @Author: tackchen
  * @Date: 2022-04-06 19:51:49
  * @LastEditors: tackchen
- * @LastEditTime: 2022-04-06 23:18:17
+ * @LastEditTime: 2022-04-06 23:20:05
  * @FilePath: /laya-game/src/control/ballDropControl.ts
  * @Description: Coding something
  */
@@ -20,7 +20,7 @@ export class BallDrop {
     }
 
     onGeneBall () {
-        console.log(this.dropNumber, this.maxDropNumber);
+        // console.log(this.dropNumber, this.maxDropNumber);
         if (!this.canDropBall()) {
             return false;
         }

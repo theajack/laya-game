@@ -141,7 +141,7 @@ export default class GameControl extends Laya.Script {
         }
     }
     onStageMouseUp (e: Laya.Event): void {
-        console.log('onStageMouseUp');
+        // console.log('onStageMouseUp');
         e.stopPropagation();
         if (this.losed) {
             this.resetGame();
@@ -165,7 +165,7 @@ export default class GameControl extends Laya.Script {
     // }
 
     onDropNewBall () {
-        console.log('onDropNewBall');
+        // console.log('onDropNewBall');
         if (this.height !== Laya.stage.height) {
             this._initSize();
         }
@@ -176,7 +176,7 @@ export default class GameControl extends Laya.Script {
 
         const x = Laya.stage.mouseX;
         const y = 50;
-        this._creatNewBall(this.nextValue, x, y, {x: 0, y: (window as any).vy || 4}); // ! 给一个初始速度
+        this._creatNewBall(this.nextValue, x, y, {x: 0, y: 4}); // ! 给一个初始速度
         this.nextValue = this._randomValue();
         // this.nextValue = 512;
         this._drawNextBall();
