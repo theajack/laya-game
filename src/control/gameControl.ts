@@ -1,5 +1,6 @@
 
 import Ball from '../object/ball';
+import {BallDrop} from './ballDropControl';
 import {countSizeByValue, getBgTexture, getGroundTexture, getRigidAttrByValue, getTextureByValue, initTexture, onTextureReady} from './texture';
 /**
  * 游戏控制脚本。定义了几个dropBox，bullet，createBoxInterval等变量，能够在IDE显示及设置该变量
@@ -18,6 +19,58 @@ function setDocumentTitle (text: string) {
 
 setDocumentTitle('游戏资源加载中...');
 
+const HighScoreManager = (() => {
+
+    const KEY = 'BALL_HIGH_SCORE';
+
+    let high = 0;
+
+    let text: Laya.Text;
+
+    return {
+        initText (control: GameControl) {
+            const value = Laya.LocalStorage.getItem(KEY);
+            if (value) {
+                high = parseInt(value);
+            }
+            text = control.owner.getChildByName('highText') as Laya.Text;
+            text.changeText(high + '');
+        },
+        record (score: number) {
+            if (score > high) {
+                high = score;
+                Laya.LocalStorage.setItem(KEY, high + '');
+                text.changeText(high + '');
+            }
+        }
+    };
+})();
+
+export const TextManager = (() => {
+    let titleText: Laya.Text;
+    let descText: Laya.Text;
+    return {
+        init (control: GameControl) {
+            titleText = control.owner.getChildByName('tip') as Laya.Text;
+            descText = control.owner.getChildByName('tip2') as Laya.Text;
+        },
+        setText (title: string, desc?:string) {
+            titleText.changeText(title);
+            titleText.visible = true;
+
+            if (desc) {
+                descText.changeText(desc);
+                descText.visible = true;
+            }
+        },
+
+        clearText () {
+            titleText.visible = false;
+            descText.visible = false;
+        }
+    };
+})();
+
 export default class GameControl extends Laya.Script {
     /** @prop {name:ball,tips:"球",type:Prefab}*/
     ball: Laya.Prefab;
@@ -30,10 +83,15 @@ export default class GameControl extends Laya.Script {
     private height: number = 667;
     private didTipShow: boolean = true;
     private wined: boolean = false;
+
+    private losed = false;
+
+    ballDrop = new BallDrop();
+
     constructor () {
         super();
         GameControl.instance = this;
-        
+        (window as any).game = this;
         initTexture();
     }
 
@@ -45,7 +103,8 @@ export default class GameControl extends Laya.Script {
             (this.owner.getChildByName('tip') as Laya.Text).changeText('合成一个大篮球');
             this._drawNextBall();
         });
-        
+        HighScoreManager.initText(this);
+        TextManager.init(this);
     }
 
     _initSize () {
@@ -56,7 +115,7 @@ export default class GameControl extends Laya.Script {
         this.owner.getChildByName('wallRight').getComponent(Laya.BoxCollider).height = this.height;
     }
 
-    _drawNextBall () {
+    _drawNextBall (mouseX?: number) {
         const size = countSizeByValue(this.nextValue);
         const starPos = 20;
         const start = starPos - (size - starPos) / 2;
@@ -67,25 +126,59 @@ export default class GameControl extends Laya.Script {
         graphics.drawTexture(bt, 0, 0, this.width, this.height);
         graphics.drawTexture(getGroundTexture(), 0, this.height - this._groundHeight, this.width, this._groundHeight);
 
-        graphics.drawTexture(getTextureByValue(this.nextValue), start, start, size, size);
+        const x = typeof mouseX === 'number' ? mouseX - size / 2 : start;
+        graphics.drawTexture(getTextureByValue(this.nextValue), x, start, size, size);
     }
 
-    onStageClick (e: Laya.Event): void {
-        // 停止事件冒泡，提高性能，当然也可以不要
+    onStageMouseDown (e: Laya.Event): void {
+        e.stopPropagation();
+        if (this.losed) {
+            return;
+        }
+        if (this.ballDrop.canDropBall()) {
+            this._drawNextBall(Laya.stage.mouseX);
+        }
+    }
+    onStageMouseUp (e: Laya.Event): void {
+        e.stopPropagation();
+        if (this.losed) {
+            this.resetGame();
+            return;
+        }
+        this.onDropNewBall();
+    }
+    onStageMouseMove (e: Laya.Event): void {
+        e.stopPropagation();
+        if (this.losed) {
+            return;
+        }
+        if (this.ballDrop.canDropBall())
+            this._drawNextBall(Laya.stage.mouseX);
+    }
+
+    // onStageClick (e: Laya.Event): void {
+    //     // 停止事件冒泡，提高性能，当然也可以不要
+    //     e.stopPropagation();
+    //     this.onDropNewBall();
+    // }
+
+    onDropNewBall () {
         if (this.height !== Laya.stage.height) {
             this._initSize();
         }
-        e.stopPropagation();
-        // 舞台被点击后，使用对象池创建子弹
+
+        if (!this.ballDrop.onGeneBall()) {
+            return;
+        }
+
         const x = Laya.stage.mouseX;
         const y = 50;
-        this._creatNewBall(this.nextValue, x, y);
+        this._creatNewBall(this.nextValue, x, y, {x: 0, y: (window as any).vy || 4}); // ! 给一个初始速度
         this.nextValue = this._randomValue();
         // this.nextValue = 512;
         this._drawNextBall();
         if (this.didTipShow) {
-            (this.owner.getChildByName('tip') as Laya.Text).visible = false;
-            (this.owner.getChildByName('tip2') as Laya.Text).visible = false;
+            TextManager.clearText();
         }
     }
 
@@ -108,6 +201,7 @@ export default class GameControl extends Laya.Script {
         y: number,
         velocity?: {x: number; y: number}
     ) {
+        // 舞台被点击后，使用对象池创建球
         const flyer: Laya.Sprite = Laya.Pool.getItemByCreateFun('ball', this.ball.create, this.ball);
         const box = flyer.getComponent(Laya.CircleCollider) as Laya.CircleCollider;
         if (value !== 2) {
@@ -124,6 +218,7 @@ export default class GameControl extends Laya.Script {
             const radius = 30 / 2;
             flyer.pos(x - radius, y - radius);
         }
+        
         this._gameBox.addChild(flyer);
         const rig = flyer.getComponent(Laya.RigidBody) as Laya.RigidBody;
         if (velocity) {
@@ -144,13 +239,30 @@ export default class GameControl extends Laya.Script {
         if (value === 1024) {
             this.wined = true;
             this.didTipShow = true;
-            const tip = (this.owner.getChildByName('tip') as Laya.Text);
-            const tip2 = (this.owner.getChildByName('tip2') as Laya.Text);
-            tip.visible = true;
-            tip.changeText('恭喜您合成了大篮球');
-            tip2.visible = true;
-            tip2.changeText('继续游戏可以合成更大的篮球哦');
+
+            TextManager.setText(
+                '恭喜您合成了大篮球',
+                '继续游戏可以合成更大的篮球哦'
+            );
         }
 
+    }
+
+    gamerOver () {
+        if (this.losed) return;
+        this.losed = true;
+        HighScoreManager.record(this.score);
+
+        TextManager.setText(
+            '游戏结束',
+            '点击屏幕重新开始'
+        );
+    }
+
+    resetGame () {
+        this._gameBox.removeChildren();
+        this.score = 0;
+        this.losed = false;
+        TextManager.clearText();
     }
 }

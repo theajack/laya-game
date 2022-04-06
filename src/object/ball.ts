@@ -10,40 +10,51 @@ export default class Ball extends Laya.Script {
     constructor () { super(); }
 
     private _removed: boolean = false;
+
+    hasCollide = false;
     
     onEnable (): void {
         // rig.setVelocity({ x: 0, y: 0 });
     }
 
-    onTriggerEnter (other: any, self: any, contact: any): void {
-        
+    onTriggerEnter (other: Laya.BoxCollider, self: Laya.BoxCollider, contact: any): void {
         if (this._removed) {
             return;
         }
 
-        const otherObject = other.owner.getComponent(Laya.Script);
+        const otherOwner = other.owner;
+
+        const otherObject = otherOwner.getComponent(Laya.Script);
         if (otherObject && otherObject._removed) {
             return;
         }
+
+        if (
+            other.label !== 'wall' &&
+            (other.label !== 'ball' || otherObject.hasCollide)
+        ) {
+            if (!this.hasCollide) {
+                GameControl.instance.ballDrop.onCollision();
+            }
+            this.hasCollide = true;
+        }
         // Laya.loader.getRes()
-
         // (this.owner as Laya.Sprite).texture.set
-
         // (this.owner as Laya.Sprite).graphics.drawTexture(Laya.loader.getRes('test/ball/b0.png'), 0, 0, 30, 30)
 
         const thisOwner: Laya.RigidBody = this.owner.getComponent(Laya.RigidBody);
         if (other.label === 'ball') {
-            const ball = other.owner.getComponent(Laya.Script) as Ball;
+            const ball = otherOwner.getComponent(Laya.Script) as Ball;
             if (ball.value === this.value) {
-                const otherOwner: Laya.RigidBody = other.owner.getComponent(Laya.RigidBody);
+                const otherRigid = otherOwner.getComponent(Laya.RigidBody);
                 // debugger
                 const velocity = {
-                    x: thisOwner.linearVelocity.x + otherOwner.linearVelocity.x,
-                    y: thisOwner.linearVelocity.y + otherOwner.linearVelocity.y,
+                    x: thisOwner.linearVelocity.x + otherRigid.linearVelocity.x,
+                    y: thisOwner.linearVelocity.y + otherRigid.linearVelocity.y,
                 };
                 const pos = contact.getHitInfo().points[0];
                 this.owner.removeSelf();
-                other.owner.removeSelf();
+                otherOwner.removeSelf();
                 GameControl.instance.geneNewBall(ball.value * 2, pos.x, pos.y, velocity);
                 Laya.SoundManager.playSound('sound/destroy.wav');
             }
@@ -66,6 +77,7 @@ export default class Ball extends Laya.Script {
 
     onDisable (): void {
         this._removed = true;
+        this.hasCollide = false;
     }
 
     setValue (value: number): void{
@@ -81,5 +93,12 @@ export default class Ball extends Laya.Script {
 
     getSize () {
         return this.size;
+    }
+
+    onUpdate (): void {
+        if (this._removed) return;
+        if ((this.owner as Laya.Sprite).y <= 0) {
+            GameControl.instance.gamerOver();
+        }
     }
 }
