@@ -2,13 +2,13 @@
  * @Author: tackchen
  * @Date: 2021-03-09 15:49:30
  * @LastEditors: tackchen
- * @LastEditTime: 2022-04-05 10:33:03
+ * @LastEditTime: 2022-04-06 21:44:53
  * @FilePath: /laya-game/hack-laya.js
  * @Description: Coding something
  */
 
-window.LAYA_BASE = '';
-window.LAYA_BASE_DIR = '';
+window.LAYA_BASE = ''; // laya assets存储路径
+window.LAYA_BASE_DIR = ''; // 访问的path
 
 function main () {
     const script = document.querySelector('[laya-base]');
@@ -39,11 +39,23 @@ function concatUrl (url) {
     if (isLayaBaseAHttpLink()) {
         return window.LAYA_BASE + url;
     }
-    return (window.LAYA_BASE_DIR ? '/' : '') + window.LAYA_BASE + url;
+    const host = location.protocol + '//' + location.host;
+    return host + (window.LAYA_BASE_DIR ? '/' : '') + window.LAYA_BASE + url;
 }
 
 function isLayaBaseAHttpLink () {
     return /^https?:\/\//.test(window.LAYA_BASE);
+}
+
+function replaceAssetsUrl (url) {
+    const head = location.protocol + '//' + location.host;
+
+    let replacement = head;
+    if (window.LAYA_BASE_DIR && location.pathname.indexOf(window.LAYA_BASE_DIR) !== -1) {
+        replacement += window.LAYA_BASE_DIR;
+    }
+    const value = (isLayaBaseAHttpLink() ? '' : head) + window.LAYA_BASE;
+    return url.replace(replacement, value);
 }
 
 
@@ -62,15 +74,7 @@ function hackLaya () {
 
     const replaceHttpUrlHandle = function (url) {
         // console.log('replaceHttpUrlHandle', url);
-        const head = location.protocol + '//' + location.host + '/';
-
-        let replacement = head;
-        if (window.LAYA_BASE_DIR && location.pathname.indexOf(window.LAYA_BASE_DIR) !== -1) {
-            replacement += window.LAYA_BASE_DIR;
-        }
-        const value = (isLayaBaseAHttpLink() ? '' : head) + window.LAYA_BASE;
-        url = url.replace(replacement, value);
-        return url;
+        return replaceAssetsUrl(url);
     };
     Laya.HttpRequest.prototype.send = _buildLayaHacker(Laya.HttpRequest.prototype.send, replaceHttpUrlHandle);
 

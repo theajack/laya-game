@@ -1,7 +1,30 @@
 (function () {
     'use strict';
 
-    let ballTextures = {};
+    class BallDrop {
+        constructor() {
+            this.maxDropNumber = 2;
+            this.dropNumber = 0;
+        }
+        onGeneBall() {
+            console.log(this.dropNumber, this.maxDropNumber);
+            if (!this.canDropBall()) {
+                return false;
+            }
+            this.dropNumber++;
+            return true;
+        }
+        canDropBall() {
+            return this.dropNumber < this.maxDropNumber;
+        }
+        onCollision() {
+            if (this.dropNumber > 0) {
+                this.dropNumber--;
+            }
+        }
+    }
+
+    const ballTextures = {};
     let bgTexture = null;
     function getBgTexture() {
         return bgTexture;
@@ -12,7 +35,7 @@
     }
     let _onTextureReady = null;
     let _number = 0;
-    let _max = 2;
+    const _max = 2;
     function onTextureReady(fn) {
         _onTextureReady = fn;
     }
@@ -27,19 +50,19 @@
     function initTexture() {
         for (let i = 0; i < 10; i++) {
             ((index) => {
-                Laya.Texture2D.load(`test/ball/b${index - 1}.png`, Laya.Handler.create(this, (texture) => {
-                    ballTextures[Math.pow(2, index)] = texture;
-                }));
+                ballTextures[Math.pow(2, index)] = loadTexture(`test/ball/b${index - 1}.png`);
             })(i + 1);
         }
-        Laya.Texture2D.load(`test/wall.jpg`, Laya.Handler.create(this, (texture) => {
-            bgTexture = texture;
-            textureReady();
+        bgTexture = loadTexture('test/wall.jpg', textureReady);
+        groundTexture = loadTexture('test/ground.jpg', textureReady);
+    }
+    function loadTexture(url, onReady) {
+        const texture = new Laya.Texture();
+        texture.load(url, Laya.Handler.create(this, () => {
+            if (onReady)
+                onReady();
         }));
-        Laya.Texture2D.load(`test/ground.jpg`, Laya.Handler.create(this, (texture) => {
-            groundTexture = texture;
-            textureReady();
-        }));
+        return texture;
     }
     function getTextureByValue(value) {
         return ballTextures[value] || ballTextures[1024];
@@ -53,7 +76,7 @@
     function getOrderByValue(value) {
         return getIndexByValue(value) - 9;
     }
-    let rigidAttrs = [
+    const rigidAttrs = [
         {
             f: 0.1,
             r: 0.3,
@@ -122,10 +145,58 @@
 
     function setDocumentTitle(text) {
         if (window.document) {
-            window.document.title = text;
+            try {
+                window.document.title = text;
+            }
+            catch (e) {
+            }
         }
     }
     setDocumentTitle('游戏资源加载中...');
+    const HighScoreManager = (() => {
+        const KEY = 'BALL_HIGH_SCORE';
+        let high = 0;
+        let text;
+        return {
+            initText(control) {
+                const value = Laya.LocalStorage.getItem(KEY);
+                if (value) {
+                    high = parseInt(value);
+                }
+                text = control.owner.getChildByName('highText');
+                text.changeText(high + '');
+            },
+            record(score) {
+                if (score > high) {
+                    high = score;
+                    Laya.LocalStorage.setItem(KEY, high + '');
+                    text.changeText(high + '');
+                }
+            }
+        };
+    })();
+    const TextManager = (() => {
+        let titleText;
+        let descText;
+        return {
+            init(control) {
+                titleText = control.owner.getChildByName('tip');
+                descText = control.owner.getChildByName('tip2');
+            },
+            setText(title, desc) {
+                titleText.changeText(title);
+                titleText.visible = true;
+                if (desc) {
+                    descText.changeText(desc);
+                    descText.visible = true;
+                }
+            },
+            clearText() {
+                titleText.visible = false;
+                descText.visible = false;
+            }
+        };
+    })();
     class GameControl extends Laya.Script {
         constructor() {
             super();
@@ -136,17 +207,22 @@
             this.height = 667;
             this.didTipShow = true;
             this.wined = false;
+            this.losed = false;
+            this.ballDrop = new BallDrop();
             GameControl.instance = this;
+            window.game = this;
             initTexture();
         }
         onEnable() {
-            this._gameBox = this.owner.getChildByName("gameBox");
+            this._gameBox = this.owner.getChildByName('gameBox');
             this._initSize();
             onTextureReady(() => {
                 setDocumentTitle('合成一个大篮球~');
-                this.owner.getChildByName("tip").changeText('合成一个大篮球');
+                this.owner.getChildByName('tip').changeText('合成一个大篮球');
                 this._drawNextBall();
             });
+            HighScoreManager.initText(this);
+            TextManager.init(this);
         }
         _initSize() {
             this.width = Laya.stage.width;
@@ -155,34 +231,62 @@
             this.owner.getChildByName('wallLeft').getComponent(Laya.BoxCollider).height = this.height;
             this.owner.getChildByName('wallRight').getComponent(Laya.BoxCollider).height = this.height;
         }
-        _drawNextBall() {
-            let size = countSizeByValue(this.nextValue);
+        _drawNextBall(mouseX) {
+            const size = countSizeByValue(this.nextValue);
             const starPos = 20;
-            let start = starPos - (size - starPos) / 2;
-            let graphics = this.owner.graphics;
+            const start = starPos - (size - starPos) / 2;
+            const graphics = this.owner.graphics;
             graphics.clear();
-            graphics.drawTexture(getBgTexture(), 0, 0, this.width, this.height);
+            const bt = getBgTexture();
+            graphics.drawTexture(bt, 0, 0, this.width, this.height);
             graphics.drawTexture(getGroundTexture(), 0, this.height - this._groundHeight, this.width, this._groundHeight);
-            graphics.drawTexture(getTextureByValue(this.nextValue), start, start, size, size);
+            const x = typeof mouseX === 'number' ? mouseX - size / 2 : start;
+            graphics.drawTexture(getTextureByValue(this.nextValue), x, start, size, size);
         }
-        onStageClick(e) {
+        onStageMouseDown(e) {
+            e.stopPropagation();
+            if (this.losed) {
+                return;
+            }
+            if (this.ballDrop.canDropBall()) {
+                this._drawNextBall(Laya.stage.mouseX);
+            }
+        }
+        onStageMouseUp(e) {
+            e.stopPropagation();
+            if (this.losed) {
+                this.resetGame();
+                return;
+            }
+            this.onDropNewBall();
+        }
+        onStageMouseMove(e) {
+            e.stopPropagation();
+            if (this.losed) {
+                return;
+            }
+            if (this.ballDrop.canDropBall())
+                this._drawNextBall(Laya.stage.mouseX);
+        }
+        onDropNewBall() {
             if (this.height !== Laya.stage.height) {
                 this._initSize();
             }
-            e.stopPropagation();
-            let x = Laya.stage.mouseX;
-            let y = 50;
-            this._creatNewBall(this.nextValue, x, y);
+            if (!this.ballDrop.onGeneBall()) {
+                return;
+            }
+            const x = Laya.stage.mouseX;
+            const y = 50;
+            this._creatNewBall(this.nextValue, x, y, { x: 0, y: window.vy || 4 });
             this.nextValue = this._randomValue();
             this._drawNextBall();
             if (this.didTipShow) {
-                this.owner.getChildByName("tip").visible = false;
-                this.owner.getChildByName("tip2").visible = false;
+                TextManager.clearText();
             }
         }
         geneNewBall(value, x, y, velocity) {
             this.score += value;
-            this.owner.getChildByName("scoreText").changeText(this.score + '');
+            this.owner.getChildByName('scoreText').changeText(this.score + '');
             this._creatNewBall(value, x, y, velocity);
             this._checkWin(value);
         }
@@ -193,7 +297,7 @@
             return Math.pow(2, this._random(1, 3));
         }
         _creatNewBall(value = 2, x, y, velocity) {
-            let flyer = Laya.Pool.getItemByCreateFun("ball", this.ball.create, this.ball);
+            const flyer = Laya.Pool.getItemByCreateFun('ball', this.ball.create, this.ball);
             const box = flyer.getComponent(Laya.CircleCollider);
             if (value !== 2) {
                 const ball = flyer.getComponent(Laya.Script);
@@ -228,13 +332,21 @@
             if (value === 1024) {
                 this.wined = true;
                 this.didTipShow = true;
-                const tip = this.owner.getChildByName("tip");
-                const tip2 = this.owner.getChildByName("tip2");
-                tip.visible = true;
-                tip.changeText('恭喜您合成了大篮球');
-                tip2.visible = true;
-                tip2.changeText('继续游戏可以合成更大的篮球哦');
+                TextManager.setText('恭喜您合成了大篮球', '继续游戏可以合成更大的篮球哦');
             }
+        }
+        gamerOver() {
+            if (this.losed)
+                return;
+            this.losed = true;
+            HighScoreManager.record(this.score);
+            TextManager.setText('游戏结束', '点击屏幕重新开始');
+        }
+        resetGame() {
+            this._gameBox.removeChildren();
+            this.score = 0;
+            this.losed = false;
+            TextManager.clearText();
         }
     }
 
@@ -244,6 +356,7 @@
             this.value = 2;
             this.size = 30;
             this._removed = false;
+            this.hasCollide = false;
         }
         onEnable() {
         }
@@ -251,32 +364,40 @@
             if (this._removed) {
                 return;
             }
-            let otherObject = other.owner.getComponent(Laya.Script);
+            const otherOwner = other.owner;
+            const otherObject = otherOwner.getComponent(Laya.Script);
             if (otherObject && otherObject._removed) {
                 return;
             }
+            if (other.label !== 'wall' &&
+                (other.label !== 'ball' || otherObject.hasCollide)) {
+                if (!this.hasCollide) {
+                    GameControl.instance.ballDrop.onCollision();
+                }
+                this.hasCollide = true;
+            }
             const thisOwner = this.owner.getComponent(Laya.RigidBody);
             if (other.label === 'ball') {
-                const ball = other.owner.getComponent(Laya.Script);
+                const ball = otherOwner.getComponent(Laya.Script);
                 if (ball.value === this.value) {
-                    const otherOwner = other.owner.getComponent(Laya.RigidBody);
+                    const otherRigid = otherOwner.getComponent(Laya.RigidBody);
                     const velocity = {
-                        x: thisOwner.linearVelocity.x + otherOwner.linearVelocity.x,
-                        y: thisOwner.linearVelocity.y + otherOwner.linearVelocity.y,
+                        x: thisOwner.linearVelocity.x + otherRigid.linearVelocity.x,
+                        y: thisOwner.linearVelocity.y + otherRigid.linearVelocity.y,
                     };
                     const pos = contact.getHitInfo().points[0];
                     this.owner.removeSelf();
-                    other.owner.removeSelf();
+                    otherOwner.removeSelf();
                     GameControl.instance.geneNewBall(ball.value * 2, pos.x, pos.y, velocity);
-                    Laya.SoundManager.playSound("sound/destroy.wav");
+                    Laya.SoundManager.playSound('sound/destroy.wav');
                 }
             }
-            let v = thisOwner.linearVelocity;
-            let value = Math.pow(v.x, 2) + Math.pow(v.y, 2);
+            const v = thisOwner.linearVelocity;
+            const value = Math.pow(v.x, 2) + Math.pow(v.y, 2);
             const start = 3;
             const end = 50;
             if (value > start) {
-                let channel = Laya.SoundManager.playSound("sound/hit.wav");
+                const channel = Laya.SoundManager.playSound('sound/hit.wav');
                 if (channel) {
                     let volume = 1;
                     if (value < end) {
@@ -288,6 +409,7 @@
         }
         onDisable() {
             this._removed = true;
+            this.hasCollide = false;
         }
         setValue(value) {
             this.value = value;
@@ -302,11 +424,17 @@
         getSize() {
             return this.size;
         }
+        onUpdate() {
+            if (this._removed)
+                return;
+            if (this.owner.y <= 0) {
+                GameControl.instance.gamerOver();
+            }
+        }
     }
 
     class GameConfig {
-        constructor() {
-        }
+        constructor() { }
         static init() {
             var reg = Laya.ClassUtils.regClass;
             reg("control/gameControl.ts", GameControl);
@@ -329,28 +457,28 @@
 
     class Main {
         constructor() {
-            if (window["Laya3D"])
+            if (window['Laya3D'])
                 Laya3D.init(GameConfig.width, GameConfig.height);
             else
-                Laya.init(GameConfig.width, GameConfig.height, Laya["WebGL"]);
-            Laya["Physics"] && Laya["Physics"].enable();
-            Laya["DebugPanel"] && Laya["DebugPanel"].enable();
+                Laya.init(GameConfig.width, GameConfig.height, Laya['WebGL']);
+            Laya['Physics'] && Laya['Physics'].enable();
+            Laya['DebugPanel'] && Laya['DebugPanel'].enable();
             Laya.stage.scaleMode = GameConfig.scaleMode;
             Laya.stage.screenMode = GameConfig.screenMode;
             Laya.stage.alignV = GameConfig.alignV;
             Laya.stage.alignH = GameConfig.alignH;
             Laya.URL.exportSceneToJson = GameConfig.exportSceneToJson;
-            if (GameConfig.debug || Laya.Utils.getQueryString("debug") == "true")
+            if (GameConfig.debug || Laya.Utils.getQueryString('debug') == 'true')
                 Laya.enableDebugPanel();
-            if (GameConfig.physicsDebug && Laya["PhysicsDebugDraw"])
-                Laya["PhysicsDebugDraw"].enable();
+            if (GameConfig.physicsDebug && Laya['PhysicsDebugDraw'])
+                Laya['PhysicsDebugDraw'].enable();
             if (GameConfig.stat)
                 Laya.Stat.show();
             Laya.alertGlobalError(true);
-            Laya.ResourceVersion.enable("version.json", Laya.Handler.create(this, this.onVersionLoaded), Laya.ResourceVersion.FILENAME_VERSION);
+            Laya.ResourceVersion.enable('version.json', Laya.Handler.create(this, this.onVersionLoaded), Laya.ResourceVersion.FILENAME_VERSION);
         }
         onVersionLoaded() {
-            Laya.AtlasInfoManager.enable("fileconfig.json", Laya.Handler.create(this, this.onConfigLoaded));
+            Laya.AtlasInfoManager.enable('fileconfig.json', Laya.Handler.create(this, this.onConfigLoaded));
         }
         onConfigLoaded() {
             GameConfig.startScene && Laya.Scene.open(GameConfig.startScene);

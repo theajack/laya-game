@@ -443,7 +443,7 @@
     }
     GameConfig.width = 375;
     GameConfig.height = 667;
-    GameConfig.scaleMode = "fixedwidth";
+    GameConfig.scaleMode = "";
     GameConfig.screenMode = "none";
     GameConfig.alignV = "top";
     GameConfig.alignH = "left";
