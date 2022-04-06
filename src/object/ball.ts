@@ -17,7 +17,19 @@ export default class Ball extends Laya.Script {
         // rig.setVelocity({ x: 0, y: 0 });
     }
 
+    onDisable (): void {
+        this._removed = true;
+    }
+
     onTriggerEnter (other: Laya.BoxCollider, self: Laya.BoxCollider, contact: any): void {
+
+        if (other.label !== 'wall') {
+            if (!this.hasCollide) {
+                this.hasCollide = true;
+                GameControl.instance.ballDrop.onCollision();
+            }
+        }
+
         if (this._removed) {
             return;
         }
@@ -29,15 +41,6 @@ export default class Ball extends Laya.Script {
             return;
         }
 
-        if (
-            other.label !== 'wall' &&
-            (other.label !== 'ball' || otherObject.hasCollide)
-        ) {
-            if (!this.hasCollide) {
-                GameControl.instance.ballDrop.onCollision();
-            }
-            this.hasCollide = true;
-        }
         // Laya.loader.getRes()
         // (this.owner as Laya.Sprite).texture.set
         // (this.owner as Laya.Sprite).graphics.drawTexture(Laya.loader.getRes('test/ball/b0.png'), 0, 0, 30, 30)
@@ -73,11 +76,6 @@ export default class Ball extends Laya.Script {
                 channel.volume = volume;
             }
         }
-    }
-
-    onDisable (): void {
-        this._removed = true;
-        this.hasCollide = false;
     }
 
     setValue (value: number): void{

@@ -123,7 +123,7 @@ export default class GameControl extends Laya.Script {
         const graphics = (this.owner as Laya.Scene).graphics;
         graphics.clear();
         const bt = getBgTexture();
-        // debugger
+
         graphics.drawTexture(bt, 0, 0, this.width, this.height);
         graphics.drawTexture(getGroundTexture(), 0, this.height - this._groundHeight, this.width, this._groundHeight);
 
@@ -141,6 +141,7 @@ export default class GameControl extends Laya.Script {
         }
     }
     onStageMouseUp (e: Laya.Event): void {
+        console.log('onStageMouseUp');
         e.stopPropagation();
         if (this.losed) {
             this.resetGame();
@@ -164,6 +165,7 @@ export default class GameControl extends Laya.Script {
     // }
 
     onDropNewBall () {
+        console.log('onDropNewBall');
         if (this.height !== Laya.stage.height) {
             this._initSize();
         }
@@ -190,7 +192,7 @@ export default class GameControl extends Laya.Script {
 
     geneNewBall (value: number, x: number, y: number, velocity: {x: number; y: number}): void {
         this.setScore(this.score + value);
-        this._creatNewBall(value, x, y, velocity);
+        this._creatNewBall(value, x, y, velocity).hasCollide = true;
         this._checkWin(value);
     }
     _random (a: number, b: number) {
@@ -204,13 +206,14 @@ export default class GameControl extends Laya.Script {
         value: number = 2,
         x: number,
         y: number,
-        velocity?: {x: number; y: number}
+        velocity?: {x: number; y: number},
     ) {
         // 舞台被点击后，使用对象池创建球
         const flyer: Laya.Sprite = Laya.Pool.getItemByCreateFun('ball', this.ball.create, this.ball);
         const box = flyer.getComponent(Laya.CircleCollider) as Laya.CircleCollider;
+
+        const ball = flyer.getComponent(Laya.Script) as Ball;
         if (value !== 2) {
-            const ball = flyer.getComponent(Laya.Script) as Ball;
             ball.setValue(value);
             const size = ball.getSize();
             const radius = size / 2;
@@ -234,6 +237,7 @@ export default class GameControl extends Laya.Script {
         box.friction = attr.f;
         box.restitution = attr.r;
         rig.gravityScale = attr.g;
+        return ball;
     }
 
     _checkWin (value: number) {

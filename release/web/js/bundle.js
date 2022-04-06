@@ -5,6 +5,8 @@
         constructor() {
             this.maxDropNumber = 2;
             this.dropNumber = 0;
+            this.lastTime = 0;
+            this.timeGap = 300;
         }
         onGeneBall() {
             console.log(this.dropNumber, this.maxDropNumber);
@@ -12,9 +14,13 @@
                 return false;
             }
             this.dropNumber++;
+            this.lastTime = Date.now();
             return true;
         }
         canDropBall() {
+            if (Date.now() - this.lastTime < this.timeGap) {
+                return false;
+            }
             return this.dropNumber < this.maxDropNumber;
         }
         onCollision() {
@@ -253,6 +259,7 @@
             }
         }
         onStageMouseUp(e) {
+            console.log('onStageMouseUp');
             e.stopPropagation();
             if (this.losed) {
                 this.resetGame();
@@ -269,6 +276,7 @@
                 this._drawNextBall(Laya.stage.mouseX);
         }
         onDropNewBall() {
+            console.log('onDropNewBall');
             if (this.height !== Laya.stage.height) {
                 this._initSize();
             }
@@ -290,7 +298,7 @@
         }
         geneNewBall(value, x, y, velocity) {
             this.setScore(this.score + value);
-            this._creatNewBall(value, x, y, velocity);
+            this._creatNewBall(value, x, y, velocity).hasCollide = true;
             this._checkWin(value);
         }
         _random(a, b) {
@@ -302,8 +310,8 @@
         _creatNewBall(value = 2, x, y, velocity) {
             const flyer = Laya.Pool.getItemByCreateFun('ball', this.ball.create, this.ball);
             const box = flyer.getComponent(Laya.CircleCollider);
+            const ball = flyer.getComponent(Laya.Script);
             if (value !== 2) {
-                const ball = flyer.getComponent(Laya.Script);
                 ball.setValue(value);
                 const size = ball.getSize();
                 const radius = size / 2;
@@ -327,6 +335,7 @@
             box.friction = attr.f;
             box.restitution = attr.r;
             rig.gravityScale = attr.g;
+            return ball;
         }
         _checkWin(value) {
             if (this.wined) {
@@ -363,7 +372,16 @@
         }
         onEnable() {
         }
+        onDisable() {
+            this._removed = true;
+        }
         onTriggerEnter(other, self, contact) {
+            if (other.label !== 'wall') {
+                if (!this.hasCollide) {
+                    this.hasCollide = true;
+                    GameControl.instance.ballDrop.onCollision();
+                }
+            }
             if (this._removed) {
                 return;
             }
@@ -371,13 +389,6 @@
             const otherObject = otherOwner.getComponent(Laya.Script);
             if (otherObject && otherObject._removed) {
                 return;
-            }
-            if (other.label !== 'wall' &&
-                (other.label !== 'ball' || otherObject.hasCollide)) {
-                if (!this.hasCollide) {
-                    GameControl.instance.ballDrop.onCollision();
-                }
-                this.hasCollide = true;
             }
             const thisOwner = this.owner.getComponent(Laya.RigidBody);
             if (other.label === 'ball') {
@@ -409,10 +420,6 @@
                     channel.volume = volume;
                 }
             }
-        }
-        onDisable() {
-            this._removed = true;
-            this.hasCollide = false;
         }
         setValue(value) {
             this.value = value;
