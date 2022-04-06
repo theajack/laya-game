@@ -1,4 +1,4 @@
-// v1.9.0
+// v1.9.3
 const ideModuleDir = global.ideModuleDir;
 const workSpaceDir = global.workSpaceDir;
 
@@ -237,6 +237,30 @@ gulp.task("modifyFile_OPPO", ["deleteSignFile_OPPO"], function() {
 	manifestJson.icon = `./${path.basename(config.oppoInfo.icon)}`;
 	if (config.oppoInfo.subpack) {
 		manifestJson.subpackages = config.oppoSubpack;
+		// 检测分包目录是否有入口文件
+		console.log('检查分包文件...');
+		 
+		if (manifestJson.subpackages) { 
+			for(let i = 0; i < manifestJson.subpackages.length; i ++) {
+				let conf = manifestJson.subpackages[i];
+				if (conf.root) {
+					let rootPath = path.join(projDir, conf.root);
+					if (!fs.existsSync(rootPath)) {
+
+						throw new Error(`分包文件/目录 ${rootPath} 不存在！`);
+					}
+					let jsIndex = rootPath.lastIndexOf('.js');
+					let jsPath = rootPath;
+					if (jsIndex < 0 || jsIndex !=  rootPath.length - 3) {
+						jsPath =  path.join(rootPath, 'main.js'); 
+					}
+					if (!fs.existsSync(jsPath)) {
+
+						throw new Error(`分包文件/目录 ${jsPath} 不存在！`);
+					}
+				}
+			}
+		}		
 	} else {
 		delete manifestJson.subpackages;
 	}
@@ -467,7 +491,7 @@ gulp.task("pluginEngin_OPPO", ["version_OPPO"], function(cb) {
 			return new Promise(function(resolve, reject) {
 				console.log(`将libs中的本地引擎插件删掉`);
 				// 4) 将libs中的本地引擎插件删掉
-				let deleteList = [`${projDir}/engine/libs/{${localUseEngineList.join(",")}}`, `${projDir}/engine/libs/min/{${localUseEngineList.join(",")}}`];
+				let deleteList = [`${projDir}/libs/{${localUseEngineList.join(",")}}`, `${projDir}/libs/min/{${localUseEngineList.join(",")}}`];
 				del(deleteList, { force: true }).then(resolve);
 			});
 		}).then(function() {
@@ -596,7 +620,7 @@ gulp.task("buildRPK_OPPO", ["pluginEngin_OPPO"], function() {
 		let opts = {
 			cwd: projDir,
 			shell: true
-		};
+		}; 
 		let cp = childProcess.spawn(`"${cmd}"`, args, opts);
 		// let cp = childProcess.spawn('npx.cmd', ['-v']);
 		cp.stdout.on('data', (data) => {
@@ -636,7 +660,7 @@ gulp.task("pushRPK_OPPO", ["buildRPK_OPPO"], function() {
 		}
 		
 		let cmd = `${adbPath}`;
-		let args = ["shell", "mkdir", `sdcard/Android/data/com.nearme.instant.platform/files/subPkg`];
+		let args = ["shell", "mkdir", `sdcard/subPkg`];
 		let opts = {
 			cwd: projDir,
 			shell: true
@@ -657,14 +681,35 @@ gulp.task("pushRPK_OPPO", ["buildRPK_OPPO"], function() {
 			resolve();
 		});
 	}).then(() => {
+
+
+		return new Promise((resolve, reject) => {
+			if (!config.uesEnginePlugin) {
+				resolve();
+				return;
+			}else {
+				// 如果使用引擎插件，解压完整包
+				let distRpkPath = path.join(projDir, "dist", `${config.oppoInfo.package}${config.oppoInfo.useReleaseSign ? ".signed" : ""}.rpk`);
+				console.log("解压完整包",distRpkPath); 
+				let tmpDir = path.join(projDir, "dist", `tmp`);
+				if (!fs.existsSync(tmpDir)) {
+					fs.mkdirSync(tmpDir);
+				}
+				extractZipFile(distRpkPath, tmpDir).then(() => {
+					console.log('解压完整包完成');
+					resolve();
+				});
+			}
+		})
+	}).then(() => {
 		return new Promise((resolve, reject) => {
 			let cmd = `${adbPath}`;
-			let sdGamesPath = config.oppoInfo.subpack ? "sdcard/Android/data/com.nearme.instant.platform/files/subPkg" : "sdcard/games";
-			let args = ["push", `dist/${config.oppoInfo.package}${config.oppoInfo.useReleaseSign ? ".signed" : ""}.rpk`, sdGamesPath];
+			let sdGamesPath = config.oppoInfo.subpack ? "sdcard/subPkg" : "sdcard/games";
+			let args = ["push", `dist${config.uesEnginePlugin ?"/tmp" : "" }/${config.oppoInfo.package}${config.oppoInfo.useReleaseSign ? ".signed" : ""}.rpk`, sdGamesPath];
 			let opts = {
 				cwd: projDir,
 				shell: true
-			};
+			}; 
 			let cp = childProcess.spawn(cmd, args, opts);
 			// let cp = childProcess.spawn('npx.cmd', ['-v']);
 			cp.stdout.on('data', (data) => {

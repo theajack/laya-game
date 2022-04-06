@@ -27,19 +27,19 @@
     function initTexture() {
         for (let i = 0; i < 10; i++) {
             ((index) => {
-                Laya.Texture2D.load(`test/ball/b${index - 1}.png`, Laya.Handler.create(this, (texture) => {
-                    ballTextures[Math.pow(2, index)] = texture;
-                }));
+                ballTextures[Math.pow(2, index)] = loadTexture(`test/ball/b${index - 1}.png`);
             })(i + 1);
         }
-        Laya.Texture2D.load(`test/wall.jpg`, Laya.Handler.create(this, (texture) => {
-            bgTexture = texture;
-            textureReady();
+        bgTexture = loadTexture('test/wall.jpg', textureReady);
+        groundTexture = loadTexture('test/ground.jpg', textureReady);
+    }
+    function loadTexture(url, onReady) {
+        const texture = new Laya.Texture();
+        texture.load(url, Laya.Handler.create(this, () => {
+            if (onReady)
+                onReady();
         }));
-        Laya.Texture2D.load(`test/ground.jpg`, Laya.Handler.create(this, (texture) => {
-            groundTexture = texture;
-            textureReady();
-        }));
+        return texture;
     }
     function getTextureByValue(value) {
         return ballTextures[value] || ballTextures[1024];
@@ -122,7 +122,11 @@
 
     function setDocumentTitle(text) {
         if (window.document) {
-            window.document.title = text;
+            try {
+                window.document.title = text;
+            }
+            catch (e) {
+            }
         }
     }
     setDocumentTitle('游戏资源加载中...');
@@ -161,7 +165,8 @@
             const start = starPos - (size - starPos) / 2;
             const graphics = this.owner.graphics;
             graphics.clear();
-            graphics.drawTexture(getBgTexture(), 0, 0, this.width, this.height);
+            const bt = getBgTexture();
+            graphics.drawTexture(bt, 0, 0, this.width, this.height);
             graphics.drawTexture(getGroundTexture(), 0, this.height - this._groundHeight, this.width, this._groundHeight);
             graphics.drawTexture(getTextureByValue(this.nextValue), start, start, size, size);
         }
@@ -305,8 +310,7 @@
     }
 
     class GameConfig {
-        constructor() {
-        }
+        constructor() { }
         static init() {
             var reg = Laya.ClassUtils.regClass;
             reg("control/gameControl.ts", GameControl);

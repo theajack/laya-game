@@ -1,4 +1,4 @@
-// v1.8.1
+// v1.8.2
 const ideModuleDir = global.ideModuleDir;
 const workSpaceDir = global.workSpaceDir;
 
@@ -222,6 +222,30 @@ gulp.task("modifyFile_XM", ["deleteSignFile_XM"], function() {
 	manifestJson.icon = `/layaicon/${path.basename(config.xmInfo.icon)}`;
 	if (config.xmInfo.subpack) { // 分包
 		manifestJson.subpackages = config.xmSubpack;
+		// 检测分包目录是否有入口文件
+		console.log('检查分包文件...');
+		 
+		if (manifestJson.subpackages) { 
+			for(let i = 0; i < manifestJson.subpackages.length; i ++) {
+				let conf = manifestJson.subpackages[i];
+				if (conf.root) {
+					let rootPath = path.join(projDir, conf.root);
+					if (!fs.existsSync(rootPath)) {
+
+						throw new Error(`分包文件/目录 ${rootPath} 不存在！`);
+					}
+					let jsIndex = rootPath.lastIndexOf('.js');
+					let jsPath = rootPath;
+					if (jsIndex < 0 || jsIndex !=  rootPath.length - 3) {
+						jsPath =  path.join(rootPath, 'main.js'); 
+					}
+					if (!fs.existsSync(jsPath)) {
+
+						throw new Error(`分包文件/目录 ${jsPath} 不存在！`);
+					}
+				}
+			}
+		}
 	} else {
 		delete manifestJson.subpackages;
 	}
@@ -335,6 +359,14 @@ gulp.task("showQRCode_XM", ["buildRPK_XM"], function() {
 			console.log(`${data}`);
 			// 输出pid，macos要用: macos无法kill进程树，也无法执行命令获取3000端口pid(没有查询权限)，导致无法kill这个进程
 			console.log('xm_qrcode_pid:' + cp.pid);
+			
+			let cmd1 = `lsof -i tcp:3000 | awk '/\d/ {print $2}'`;
+            // let occupiedPort = childProcess.execSync(cmd1);
+            // occupiedPort = Number(occupiedPort);
+            // if (occupiedPort && Number.isInteger(occupiedPort)) {
+			// 	let cmd2 = `kill -9 ${occupiedPort}`;
+			// 	childProcess.execSync(cmd2);
+			// }
 		});
 
 		cp.stderr.on('data', (data) => {

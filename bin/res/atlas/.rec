@@ -49,11 +49,11 @@ P EC45CD3F ball.png
 P 9A09F804 block.png
 P 65CC7075 c1.png
 P 4D16AC06 c2.png
-P 2FFCC5E2 ground.jpg
+R 2FFCC5E2 ground.jpg
 P 39B957DA p1.png
 P 2E1973F5 t1.png
 P F8700A3B tra.png
-P 21C44010 wall.jpg
+R 21C44010 wall.jpg
 D test/ball
 P EEE85C9D b0.png
 P 692AC632 b1.png

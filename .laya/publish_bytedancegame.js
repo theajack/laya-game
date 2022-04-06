@@ -1,4 +1,4 @@
-// v1.1.1
+// v1.1.3
 const ideModuleDir = global.ideModuleDir;
 const workSpaceDir = global.workSpaceDir;
 
@@ -59,9 +59,33 @@ gulp.task("modifyFile_ByteDance", versiontask, function() {
 	let conJson = JSON.parse(content);
 	conJson.deviceOrientation = config.bytedanceInfo.orientation;
 	if (config.bytedanceInfo.subpack) { // 分包
-		conJson.subpackages = config.bytedanceSubpack;
+		conJson.subPackages = config.bytedanceSubpack;
+			
+		// 检测分包目录是否有入口文件
+		console.log('检查分包文件...');
+		if (conJson.subPackages) { 
+			for(let i = 0; i < conJson.subPackages.length; i ++) {
+				let conf = conJson.subPackages[i];
+				if (conf.root) {
+					let rootPath = path.join(releaseDir, conf.root);
+					if (!fs.existsSync(rootPath)) {
+
+						throw new Error(`分包文件/目录 ${rootPath} 不存在！`);
+					}
+					let jsIndex = rootPath.lastIndexOf('.js');
+					let jsPath = rootPath;
+					if (jsIndex < 0 || jsIndex !=  rootPath.length - 3) {
+						jsPath =  path.join(rootPath, 'game.js'); 
+					}
+					if (!fs.existsSync(jsPath)) {
+
+						throw new Error(`分包文件/目录 ${jsPath} 不存在！`);
+					}
+				}
+			}
+		}
 	} else {
-		delete conJson.subpackages;
+		delete conJson.subPackages;
 	}
 	content = JSON.stringify(conJson, null, 4);
 	fs.writeFileSync(gameJsonPath, content, "utf8");
