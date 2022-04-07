@@ -220,6 +220,7 @@
         onEnable() {
             this._gameBox = this.owner.getChildByName('gameBox');
             this._initSize();
+            this._initGravity();
             initTexture();
             onTextureReady(() => {
                 setDocumentTitle('合成一个大篮球~');
@@ -228,6 +229,19 @@
             });
             HighScoreManager.initText(this);
             TextManager.init(this);
+        }
+        _initGravity() {
+            Laya.Gyroscope.instance.on(Laya.Event.CHANGE, this, (bool, info) => {
+                const value = info.gamma;
+                const abs = Math.abs(value);
+                if (abs < 10) {
+                    Laya.Physics.I.gravity = { x: 0, y: 10 };
+                }
+                else {
+                    const sign = Math.sign(value);
+                    Laya.Physics.I.gravity = { x: ((abs / 30) + 1) * sign, y: 10 };
+                }
+            });
         }
         _initSize() {
             this.width = Laya.stage.width;

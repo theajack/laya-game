@@ -2,6 +2,7 @@
 import Ball from '../object/ball';
 import {BallDrop} from './ballDropControl';
 import {countSizeByValue, getBgTexture, getGroundTexture, getRigidAttrByValue, getTextureByValue, initTexture, onTextureReady} from './texture';
+
 /**
  * 游戏控制脚本。定义了几个dropBox，bullet，createBoxInterval等变量，能够在IDE显示及设置该变量
  * 更多类型定义，请参考官方文档
@@ -98,6 +99,7 @@ export default class GameControl extends Laya.Script {
     onEnable (): void {
         this._gameBox = this.owner.getChildByName('gameBox') as Laya.Sprite;
         this._initSize();
+        this._initGravity();
         initTexture();
         onTextureReady(() => {
             setDocumentTitle('合成一个大篮球~');
@@ -106,6 +108,20 @@ export default class GameControl extends Laya.Script {
         });
         HighScoreManager.initText(this);
         TextManager.init(this);
+    }
+
+    _initGravity () {
+
+        Laya.Gyroscope.instance.on(Laya.Event.CHANGE, this, (bool, info) => {
+            const value = info.gamma;
+            const abs = Math.abs(value);
+            if (abs < 10) {
+                Laya.Physics.I.gravity = {x: 0, y: 10};
+            } else {
+                const sign = Math.sign(value);
+                Laya.Physics.I.gravity = {x: ((abs / 30) + 1) * sign, y: 10};
+            }
+        });
     }
 
     _initSize () {
@@ -157,7 +173,10 @@ export default class GameControl extends Laya.Script {
         if (this.ballDrop.canDropBall())
             this._drawNextBall(Laya.stage.mouseX);
     }
+    // Laya.Gyroscope.instance.on(Laya.Event.CHANGE,this, (a,b,c)=>{
 
+    //     console.log(a,b,c)
+    // });
     // onStageClick (e: Laya.Event): void {
     //     // 停止事件冒泡，提高性能，当然也可以不要
     //     e.stopPropagation();
